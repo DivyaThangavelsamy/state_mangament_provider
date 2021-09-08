@@ -1,40 +1,47 @@
+// Copyright 2019 The Chromium Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 void main() {
   runApp(
+    // Provide the model to all widgets within the app. We're using
+    // ChangeNotifierProvider because that's a simple way to rebuild
+    // widgets when a model changes. We could also just use
+    // Provider, but then we would have to listen to Counter ourselves.
+    //
+    // Read Provider's docs to learn about all the available providers.
     ChangeNotifierProvider(
-        create : (context) => Counter(),
-        child : MyApp(),
+      // Initialize the model in the builder. That way, Provider
+      // can own Counter's lifecycle, making sure to call `dispose`
+      // when not needed anymore.
+      create: (context) => Counter(),
+      child: MyApp(),
     ),
-    );
+  );
 }
 
-class Counter extends ChangeNotifier {
-  int value =0;
+/// Simplest possible model, with just one field.
+///
+/// [ChangeNotifier] is a class in `flutter:foundation`. [Counter] does
+/// _not_ depend on Provider.
+class Counter with ChangeNotifier {
+  int value = 0;
 
   void increment() {
-    value  += 1;
+    value += 1;
     notifyListeners();
   }
 }
 
 class MyApp extends StatelessWidget {
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Flutter Demo',
       theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // Try running your application with "flutter run". You'll see the
-        // application has a blue toolbar. Then, without quitting the app, try
-        // changing the primarySwatch below to Colors.green and then invoke
-        // "hot reload" (press "r" in the console where you ran "flutter run",
-        // or simply save your changes to "hot reload" in a Flutter IDE).
-        // Notice that the counter didn't reset back to zero; the application
-        // is not restarted.
         primarySwatch: Colors.blue,
       ),
       home: MyHomePage(),
@@ -43,61 +50,54 @@ class MyApp extends StatelessWidget {
 }
 
 class MyHomePage extends StatelessWidget {
-
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
     return Scaffold(
       appBar: AppBar(
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
         title: const Text('Flutter Demo Home Page'),
       ),
       body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
         child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Invoke "debug painting" (press "p" in the console, choose the
-          // "Toggle Debug Paint" action from the Flutter Inspector in Android
-          // Studio, or the "Toggle Debug Paint" command in Visual Studio Code)
-          // to see the wireframe for each widget.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            Text(
-              'You have pushed the button this many times:',
-            ),
-            Consumer<Counter> (
-              builder: (context,counter,child) => Text(
+            const Text('You have pushed the button this many times:'),
+            // Consumer looks for an ancestor Provider widget
+            // and retrieves its model (Counter, in this case).
+            // Then it uses that model to build widgets, and will trigger
+            // rebuilds if the model is updated.
+            Consumer<Counter>(
+              builder: (context, counter, child) => Text(
                 '${counter.value}',
                 style: Theme.of(context).textTheme.headline4,
               ),
-            )
+            ),
           ],
         ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
+          // You can access your providers anywhere you have access
+          // to the context. One way is to use Provider.of<Counter>(context).
+          //
+          // The provider package also defines extension methods on context
+          // itself. You can call context.watch<Counter>() in a build method
+          // of any widget to access the current state of Counter, and to ask
+          // Flutter to rebuild your widget anytime Counter changes.
+          //
+          // You can't use context.watch() outside build methods, because that
+          // often leads to subtle bugs. Instead, you should use
+          // context.read<Counter>(), which gets the current state
+          // but doesn't ask Flutter for future rebuilds.
+          //
+          // Since we're in a callback that will be called whenever the user
+          // taps the FloatingActionButton, we are not in the build method here.
+          // We should use context.read().
           var counter = context.read<Counter>();
           counter.increment();
         },
         tooltip: 'Increment',
-        child: Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
+        child: const Icon(Icons.add),
+      ),
     );
   }
 }
